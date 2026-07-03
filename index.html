@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Background Remover</title>
+  <style>
+    #drop-area {
+      border: 2px dashed #ccc;
+      padding: 40px;
+      text-align: center;
+      font-family: sans-serif;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div id="drop-area">
+    <h3>Drag & Drop Image Here</h3>
+    <input type="file" id="fileElem" accept="image/*" style="display:none">
+    <button onclick="document.getElementById('fileElem').click()">Select File</button>
+  </div>
+  <div id="result"></div>
+
+  <script>
+    // Render 배포 후 실제 백엔드 URL로 교체하세요.
+    const BACKEND_URL = 'https://REPLACE_WITH_RENDER_URL.onrender.com/upload';
+
+    const dropArea = document.getElementById('drop-area');
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, e => {
+        e.preventDefault();
+        dropArea.style.borderColor = 'green';
+      }, false);
+    });
+
+    dropArea.addEventListener('drop', async e => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      await uploadFile(file);
+    });
+
+    document.getElementById('fileElem').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      await uploadFile(file);
+    });
+
+    // 붙여넣기 이벤트 추가 (여기 넣기)
+    window.addEventListener('paste', async (e) => {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+            await uploadFile(file);
+        }
+        }
+    }
+    });
+
+    async function uploadFile(file) {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(BACKEND_URL, {
+      method: 'POST',
+      body: formData
+      });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      // 이미지를 감쌀 컨테이너 생성
+      const imageContainer = document.createElement('div');
+      imageContainer.style.position = 'relative'; // 자식 요소의 absolute 위치 지정을 위해 필요
+      imageContainer.style.width = '500px'; // 이미지와 동일한 너비 (500px로 변경)
+      imageContainer.style.height = 'auto'; // 이미지 높이에 따라 자동으로 조절되도록 auto
+      imageContainer.style.display = 'inline-block'; // 블록 요소이지만 내용만큼만 공간 차지
+      imageContainer.style.marginTop = '20px'; // 기존 이미지의 margin-top 유지
+
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.width = '100%'; // 컨테이너에 맞춰 100%
+      img.style.height = 'auto';
+      img.style.border = '1px solid #ccc';
+      
+      imageContainer.appendChild(img); // 이미지를 컨테이너에 추가
+
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+      resultDiv.appendChild(imageContainer); // 컨테이너를 resultDiv에 추가
+
+      // 가이드라인 좌표 (500x500 이미지 기준)
+      const guideLines = {
+        x: [71, 433],
+        y: [29, 71, 433, 480]
+      };
+
+      // 세로선 추가 (스케일 보정 없이 직접 좌표 사용)
+      guideLines.x.forEach(xPos => {
+        const line = document.createElement('div');
+        line.style.position = 'absolute';
+        line.style.left = `${xPos}px`; // 스케일 보정 없이 직접 좌표 사용
+        line.style.top = '0';
+        line.style.width = '1px';
+        line.style.height = '100%'; // 컨테이너 높이에 맞춰
+        line.style.backgroundColor = 'rgba(255, 0, 255, 0.2)'; // 연한 빨간색
+        imageContainer.appendChild(line);
+      });
+
+      // 가로선 추가 (스케일 보정 없이 직접 좌표 사용)
+      guideLines.y.forEach(yPos => {
+        const line = document.createElement('div');
+        line.style.position = 'absolute';
+        line.style.top = `${yPos}px`; // 스케일 보정 없이 직접 좌표 사용
+        line.style.left = '0';
+        line.style.width = '100%'; // 컨테이너 너비에 맞춰
+        line.style.height = '1px';
+        line.style.backgroundColor = 'rgba(255, 0, 255, 0.2)'; // 연한 파란색
+        imageContainer.appendChild(line);
+      });
+
+
+      link.href = url;
+      link.download = "processed.png";
+      document.body.appendChild(link);  // 반드시 문서에 추가
+      link.click();
+      
+      document.body.removeChild(link);  // 클릭 후 제거
+      
+    //   window.URL.revokeObjectURL(url);  // 메모리 해제
+      // 💡 revokeObjectURL을 약간 지연시켜야 이미지가 보인다
+      setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 3000); // 3초 후 해제 (혹은 img.onload 로 감싸도 좋음)
+
+      } else {
+      alert("Upload failed.");
+    }
+      
+    //   if (response.ok) {
+    //     const blob = await response.blob();
+    //     const url = window.URL.createObjectURL(blob);
+    //     const link = document.createElement('a');
+    //     link.href = url;
+    //     link.download = "processed.png";
+    //     link.click();
+    //   } else {
+    //     alert("Upload failed.");
+    //   }
+
+
+    }
+  </script>
+</body>
+</html>

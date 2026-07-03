@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: image-webapp-backend
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python -c \"from rembg import new_session; new_session('u2net')\""
+    startCommand: "python server.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
